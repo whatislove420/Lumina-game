@@ -128,7 +128,7 @@ def load_music(file):
 def show_controls_menu(screen):
     font = pygame.font.Font(None, 60)
     small_font = pygame.font.Font(None, 40)
-    menu_bg = pygame.image.load("menu_background.png").convert()
+    menu_bg = pygame.image.load(os.path.join(Settings.IMAGE_PATH, "menu_background.png")).convert_alpha()
     menu_bg = pygame.transform.scale(menu_bg, Settings.WINDOW.size)
 
     instructions = [
@@ -164,7 +164,7 @@ def show_controls_menu(screen):
 def show_volume_menu(screen):
     font = pygame.font.Font(None, 60)
     small_font = pygame.font.Font(None, 40)
-    menu_bg = pygame.image.load("menu_background.png").convert()
+    menu_bg = pygame.image.load(os.path.join(Settings.IMAGE_PATH, "menu_background.png")).convert_alpha()
     menu_bg = pygame.transform.scale(menu_bg, Settings.WINDOW.size)
 
     music_volume = pygame.mixer.music.get_volume()
@@ -211,7 +211,7 @@ def show_volume_menu(screen):
 
 def show_main_menu(screen):
     font = pygame.font.Font(None, 80)
-    menu_bg = pygame.image.load("menu_background.png").convert()
+    menu_bg = pygame.image.load(os.path.join(Settings.IMAGE_PATH, "menu_background.png")).convert_alpha()
     menu_bg = pygame.transform.scale(menu_bg, Settings.WINDOW.size)
     load_music("menu_music.mp3")
 
@@ -295,7 +295,7 @@ def main():
     screen = pygame.display.set_mode(Settings.WINDOW.size)
     pygame.display.set_caption("Lumina")
     clock = pygame.time.Clock()
-    background = pygame.image.load("Background.png").convert_alpha()
+    background = pygame.image.load(os.path.join(Settings.IMAGE_PATH, "Background.png")).convert_alpha()
     background = pygame.transform.scale(background, Settings.WINDOW.size)
     font = pygame.font.Font(None, 100)
     small_font = pygame.font.Font(None, 50)
