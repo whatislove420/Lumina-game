@@ -1,16 +1,8 @@
-import pygame
-from player import Player
-from level1 import Level1
-from level2 import Level2
-from button import Button
-
-
 import os
 import pygame
 import random
 import time
 game_music_volume = 1.0
-
 
 class Settings:
     WINDOW = pygame.rect.Rect(400, 0, 1200, 700)
@@ -24,35 +16,47 @@ class Obstacle(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         original_image = pygame.image.load(os.path.join(Settings.IMAGE_PATH, "Baum.png")).convert_alpha()
-        new_size = (original_image.get_width() // 2, original_image.get_height() // 2)
+        original_rect = original_image.get_rect()
+        new_size = (original_rect.width // 2, original_rect.height // 2)
         self.image = pygame.transform.scale(original_image, new_size)
         self.rect = self.image.get_rect(topleft=(x, y))
         self.mask = pygame.mask.from_surface(self.image)
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, spawn_rect):
+    def __init__(self):
         super().__init__()
         self.images = [pygame.image.load(os.path.join(Settings.IMAGE_PATH, f"Rabe{i}.png")).convert_alpha() for i in range(1, 5)]
         self.index = 0
         self.image = self.images[self.index]
-        self.rect = self.image.get_rect(center=spawn_rect.center)
+        self.rect = self.image.get_rect()
+        self.rect.center = (random.randint(0, Settings.WINDOW.width), random.randint(0, Settings.WINDOW.height // 2))
         self.mask = pygame.mask.from_surface(self.image)
         self.speed = 1
         self.animation_timer = 0
         self.animation_speed = 150
         self.paused = False
+        self.respawn_timer = 0
+        self.respawn_interval = 5000
 
     def update(self, dt, player_rect):
         if not self.paused:
+            self.respawn_timer += dt
+            if self.respawn_timer >= self.respawn_interval:
+                self.rect.center = (random.randint(0, Settings.WINDOW.width), random.randint(0, Settings.WINDOW.height // 2))
+                self.respawn_timer = 0
+
             if self.rect.x < player_rect.x:
                 self.rect.x += self.speed
             elif self.rect.x > player_rect.x:
                 self.rect.x -= self.speed
+
             if self.rect.y < player_rect.y:
                 self.rect.y += self.speed
             elif self.rect.y > player_rect.y:
                 self.rect.y -= self.speed
+
+            self.rect.clamp_ip(pygame.Rect(0, 0, Settings.WINDOW.width, Settings.WINDOW.height))
 
             self.animation_timer += dt
             if self.animation_timer >= self.animation_speed:
@@ -60,36 +64,6 @@ class Enemy(pygame.sprite.Sprite):
                 self.index = (self.index + 1) % len(self.images)
                 self.image = self.images[self.index]
                 self.mask = pygame.mask.from_surface(self.image)
-
-
-class SpiderEnemy(pygame.sprite.Sprite):
-    def __init__(self, spawn_rect):
-        super().__init__()
-        self.image = pygame.image.load(os.path.join(Settings.IMAGE_PATH, "spider.png")).convert_alpha()
-        self.rect = self.image.get_rect(midtop=spawn_rect.midtop)
-        self.mask = pygame.mask.from_surface(self.image)
-        self.speed = 2
-
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.top > Settings.WINDOW.height:
-            self.rect.bottom = 0
-
-
-class LightBall(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.image.load(os.path.join(Settings.IMAGE_PATH, "licht.png")).convert_alpha()
-        self.rect = self.image.get_rect(center=(x, y))
-        self.mask = pygame.mask.from_surface(self.image)
-
-
-class Nest(pygame.sprite.Sprite):
-    def __init__(self, x, y, image_name="nest.png"):
-        super().__init__()
-        self.image = pygame.image.load(os.path.join(Settings.IMAGE_PATH, image_name)).convert_alpha()
-        self.rect = self.image.get_rect(center=(x, y))
-        self.mask = pygame.mask.from_surface(self.image)
 
 
 class Player(pygame.sprite.Sprite):
@@ -112,6 +86,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.x += self.speed_x
             self.rect.y += self.speed_y
             self.rect.clamp_ip(pygame.Rect(0, 0, Settings.WINDOW.width, Settings.WINDOW.height))
+
             self.animation_timer += dt
             if self.animation_timer >= self.animation_speed:
                 self.animation_timer = 0
@@ -130,8 +105,11 @@ class Player(pygame.sprite.Sprite):
         pygame.draw.rect(screen, (0, 0, 0), (x - 2, y - 2, bar_width + 4, bar_height + 4))
         pygame.draw.rect(screen, (169, 169, 169), (x, y, bar_width, bar_height))
         pygame.draw.rect(screen, (255, 255, 0), (x, y, fill_width, bar_height))
+
         font = pygame.font.Font(None, 28)
         text = font.render("Lichtleiste", True, (255, 255, 0))
+        text_rect = text.get_rect(topleft=(x, y + bar_height + 5))
+        pygame.draw.rect(screen, (0, 0, 0), text_rect.inflate(6, 6))
         screen.blit(text, (x, y + bar_height + 5))
 
     def draw_glow(self, screen):
@@ -323,19 +301,6 @@ def main():
     small_font = pygame.font.Font(None, 50)
     load_music("game_music.mp3")
     pygame.mixer.music.set_volume(game_music_volume)
-    #NEU
-    pygame.init()
-    screen = pygame.display.set_mode((Settings.WINDOW.width, Settings.WINDOW.height))
-    pygame.display.set_caption("Das Licht der Raben")
-    clock = pygame.time.Clock()
-    game_state = "menu"
-
-    # Initialisiere Buttons
-    start_button = Button("Start", (Settings.WINDOW.width // 2, 300))
-    quit_button = Button("Beenden", (Settings.WINDOW.width // 2, 400))
-    retry_button = Button("Retry", (Settings.WINDOW.width // 2, 500))
-    menu_button = Button("Menü", (Settings.WINDOW.width // 2, 600))
-    #NEU
 
     def draw_game_over_buttons():
         retry_text = small_font.render("Retry", True, (255, 255, 255))
@@ -365,10 +330,7 @@ def main():
                     continue
                 obstacles.add(new_obstacle)
                 break
-        
-#NEU
-        level1 = Level1(player)
-        level2 = None #NEU
+
         paused = False
         running = True
         game_over = False
@@ -397,7 +359,6 @@ def main():
                         running = False
 
             keys = pygame.key.get_pressed()
-            player.update(keys)
             if not game_over:
                 if keys[pygame.K_p]:
                     paused = not paused
@@ -444,68 +405,6 @@ def main():
                 screen.blit(overlay, (0, 0))
                 screen.blit(game_over_text, game_over_rect)
                 retry_rect, menu_rect = draw_game_over_buttons()
-#NEU 
-            if game_state == "menu":
-                start_button.draw(screen)
-                quit_button.draw(screen)
-            if start_button.is_clicked():
-                player.reset()
-                level1 = Level1(player)
-                game_state = "level_1"
-            if quit_button.is_clicked():
-                running = False
-
-            elif game_state == "level_1":
-                level1.update(dt)
-                level1.draw(screen)
-                screen.blit(player.image, player.rect)
-                player.draw_health_bar(screen)
-
-                result = level1.check_collisions()
-            if result == "level_2":
-                level2 = Level2(player)
-                game_state = "level_2"
-            elif result == "game_over":
-                game_state = "game_over"
-
-            elif game_state == "level_2":
-                level2.update(dt)
-                level2.draw(screen)
-                screen.blit(player.image, player.rect)
-                player.draw_health_bar(screen)
-
-                result = level2.check_collisions()
-            if result == "victory":
-                game_state = "victory"
-            elif result == "game_over":
-                game_state = "game_over"
-
-            elif game_state == "game_over":
-                screen.fill((0, 0, 0))
-                text = font.render("Game Over", True, (255, 0, 0))
-                screen.blit(text, (Settings.WINDOW.width // 2 - text.get_width() // 2, 200))
-                retry_button.draw(screen)
-                menu_button.draw(screen)
-            if retry_button.is_clicked():
-                player.reset()
-                level1 = Level1(player)
-                game_state = "level_1"
-            if menu_button.is_clicked():
-                game_state = "menu"
-
-            elif game_state == "victory":
-                screen.fill((0, 50, 0))
-                text = font.render("Du hast es geschafft!", True, (255, 255, 0))
-                screen.blit(text, (Settings.WINDOW.width // 2 - text.get_width() // 2, 200))
-                retry_button.draw(screen)
-                menu_button.draw(screen)
-            if retry_button.is_clicked():
-                player.reset()
-                level1 = Level1(player)
-                game_state = "level_1"
-            if menu_button.is_clicked():
-                game_state = "menu"
-#NEU
 
             pygame.display.flip()
 
